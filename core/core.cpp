@@ -3,6 +3,8 @@
 //
 
 #include"core.h"
+#include "core.h"
+
 #include<string.h>
 #include<stdio.h>
 
@@ -57,6 +59,116 @@ uint32_t colour(SDL_Surface *screen, char *name) {
         return SDL_MapRGB(screen->format, 0xA0, 0xA0, 0xA0);
     if (strcmp(name, "border") == 0)
         return SDL_MapRGB(screen->format, 0x60, 0x60, 0x60);
+    if (strcmp(name, "emptyblock") == 0)
+        return SDL_MapRGB(screen->format, 0xCC, 0xCC, 0xCC);
+    if (strcmp(name, "2") == 0)
+        return SDL_MapRGB(screen->format, 0xEE, 0xE4, 0xDA);
+    if (strcmp(name, "4") == 0)
+        return SDL_MapRGB(screen->format, 0xED, 0xE0, 0xC8);
+    if (strcmp(name, "8") == 0)
+        return SDL_MapRGB(screen->format, 0xF2, 0xB1, 0x79);
+    if (strcmp(name, "16") == 0)
+        return SDL_MapRGB(screen->format, 0xF5, 0x95, 0x63);
+    if (strcmp(name, "32") == 0)
+        return SDL_MapRGB(screen->format, 0xF9, 0x7C, 0x5F);
+    if (strcmp(name, "64") == 0)
+        return SDL_MapRGB(screen->format, 0xF6, 0x5E, 0x3B);
+    if (strcmp(name, "128") == 0)
+        return SDL_MapRGB(screen->format, 0xED, 0xCF, 0x72);
+    if (strcmp(name, "256") == 0)
+        return SDL_MapRGB(screen->format, 0xED, 0xCC, 0x61);
+    if (strcmp(name, "512") == 0)
+        return SDL_MapRGB(screen->format, 0xED, 0xC8, 0x50);
+    if (strcmp(name, "1024") == 0)
+        return SDL_MapRGB(screen->format, 0xED, 0xC5, 0x2F);
+    if (strcmp(name, "2048") == 0)
+        return SDL_MapRGB(screen->format, 0xED, 0xC2, 0x2E);
+    return 0;
+}
 
+EXTERNC
+int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction) {
+    // move position is temp position of block moving because of possibility to move up to 3 blocks
+    // temp stores value of block being moved
+    int move_position, temp;
+    switch (direction) {
+        case SDLK_UP:
+            // check for every block on board
+            for (int i = 0; i < BOARD_SIZE; ++i) {
+                for (int j = 0; j < BOARD_SIZE; ++j) {
+                    // if block has a value and was not moved during this loop
+                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
+                        move_position = i;
+                        // while nieghbouring block is empty and move stays within the board
+                        while (move_position > 0 && blocks[j][move_position - 1].value == EMPTY) {
+                            temp = blocks[j][move_position].value;
+                            blocks[j][move_position].value = EMPTY;
+                            blocks[j][move_position - 1].value = temp;
+                            blocks[j][move_position - 1].moved = 1;
+                            --move_position;
+                        }
+                    }
+                }
+            }
+            break;
+        // for other direction similar
+        case SDLK_DOWN:
+            // checking begin from last row of the board, so every tile can move properly
+            for (int i = BOARD_SIZE-1; i >=0; --i) {
+                for (int j = 0; j < BOARD_SIZE; ++j) {
+                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
+                        move_position = i;
+                        while (move_position < BOARD_SIZE-1 && blocks[j][move_position + 1].value == EMPTY) {
+                            temp = blocks[j][move_position].value;
+                            blocks[j][move_position].value = EMPTY;
+                            blocks[j][move_position + 1].value = temp;
+                            blocks[j][move_position + 1].moved = 1;
+                            ++move_position;
+                        }
+                    }
+                }
+            }
+            break;
+        case SDLK_LEFT:
+            for (int i = 0; i < BOARD_SIZE; ++i) {
+                for (int j = 0; j < BOARD_SIZE; ++j) {
+                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
+                        move_position = j;
+                        while (move_position > 0 && blocks[move_position - 1][i].value == EMPTY) {
+                            temp = blocks[move_position][i].value;
+                            blocks[move_position][i].value = EMPTY;
+                            blocks[move_position - 1][i].value = temp;
+                            blocks[move_position - 1][i].moved = 1;
+                            --move_position;
+                        }
+                    }
+                }
+            }
+            break;
+        case SDLK_RIGHT:
+            for (int i = 0; i < BOARD_SIZE; ++i) {
+                // checking begin from last cloumn of the board, so every tile can move properly
+                for (int j = BOARD_SIZE-1; j >= 0; --j) {
+                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
+                        move_position = j;
+                        while (move_position < BOARD_SIZE-1 && blocks[move_position + 1][i].value == EMPTY) {
+                            temp = blocks[move_position][i].value;
+                            blocks[move_position][i].value = EMPTY;
+                            blocks[move_position + 1][i].value = temp;
+                            blocks[move_position + 1][i].moved = 1;
+                            ++move_position;
+                        }
+                    }
+                }
+            }
+            break;
+        default:break;
+
+    }
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            blocks[i][j].moved = 0;
+        }
+    }
     return 0;
 }

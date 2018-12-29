@@ -5,19 +5,24 @@
 #include<string.h>
 #include"core/display.h"
 
+void defaultSettings(game_t *game_status);
+
 // main
 #ifdef __cplusplus
 extern "C"
 #endif
 int main(int argc, char *argv[]) {
-    int t1, t2, quit, frames, legendPosition;
-    double delta, worldTime, fpsTimer, fps, distance, etiSpeed;
+    int t1, t2, quit, frames;
+    double delta, fpsTimer, fps;
+    game_t game_status;
     SDL_Event event;
     SDL_Surface *screen = NULL, *charset = NULL;
     SDL_Surface *eti = NULL;
     SDL_Texture *scrtex = NULL;
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
+
+    defaultSettings(&game_status);
 
     printf("printf output goes here\n");
 
@@ -44,29 +49,12 @@ int main(int argc, char *argv[]) {
     };
     SDL_SetColorKey(charset, true, 0xFFFFFF);
 
-    eti = SDL_LoadBMP("./eti.bmp");
-    if(eti == NULL) {
-        printf("SDL_LoadBMP(eti.bmp) error: %s\n", SDL_GetError());
-        SDL_FreeSurface(charset);
-        SDL_FreeSurface(screen);
-        SDL_DestroyTexture(scrtex);
-        SDL_DestroyWindow(window);
-        SDL_DestroyRenderer(renderer);
-        SDL_Quit();
-        return 1;
-    };
-
-    char text[128];
-
     t1 = SDL_GetTicks();
 
     frames = 0;
     fpsTimer = 0;
     fps = 0;
     quit = 0;
-    worldTime = 0;
-    distance = 0;
-    etiSpeed = 1;
 
     while(!quit) {
         t2 = SDL_GetTicks();
@@ -77,18 +65,16 @@ int main(int argc, char *argv[]) {
         delta = (t2 - t1) * 0.001;
         t1 = t2;
 
-        worldTime += delta;
-
-        distance += etiSpeed * delta;
+        game_status.timer += delta;
 
         SDL_FillRect(screen, NULL, colour(screen, (char *)"background"));
 
-        DrawSurface(screen, eti,
+        /*DrawSurface(screen, eti,
                     (int)(GAME_WIDTH / 2 + sin(distance) * SCREEN_HEIGHT / 3),
                     (int)(SCREEN_HEIGHT / 2 + cos(distance) * SCREEN_HEIGHT / 3));
-
+        */
         fpsTimer += delta;
-        if(fpsTimer > 0.5) {`
+        if(fpsTimer > 0.5) {
             fps = frames * 2;
             frames = 0;
             fpsTimer -= 0.5;
@@ -96,21 +82,9 @@ int main(int argc, char *argv[]) {
 
         // info text
         DrawLine(screen, GAME_WIDTH, 0, SCREEN_HEIGHT, 0, 1, colour(screen, (char *)"border"));
-        legendPosition = 10;
-        sprintf(text, "%.0lf FPS", fps);
-        DrawString(screen, GAME_WIDTH + LEGEND_WIDTH - strlen(text)*8 - 8, legendPosition, text, charset);
-        legendPosition += 32;
-        sprintf(text, "Game duration: %.1lf s ", worldTime);
-        DrawString(screen, GAME_WIDTH + 10, legendPosition, text, charset);
-        legendPosition += 16;
-        sprintf(text, "Esc - exit");
-        DrawString(screen, GAME_WIDTH + 10, legendPosition, text, charset);
-        legendPosition += 16;
-        sprintf(text, " \030  - faster");
-        DrawString(screen, GAME_WIDTH + 10, legendPosition, text, charset);
-        legendPosition += 16;
-        sprintf(text, " \031  - slower");
-        DrawString(screen, GAME_WIDTH + 10, legendPosition, text, charset);
+        DrawLegend(screen, charset, fps, game_status.timer);
+
+        DrawBoard(screen, charset, game_status);
 
         SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
 		SDL_RenderClear(renderer);
@@ -120,13 +94,25 @@ int main(int argc, char *argv[]) {
         // handling of events (if there were any)
         while(SDL_PollEvent(&event)) {
             switch(event.type) {
-                case SDL_KEYDOWN:
-                    if(event.key.keysym.sym == SDLK_ESCAPE) quit = 1;
-                    else if(event.key.keysym.sym == SDLK_UP) etiSpeed = 2.0;
-                    else if(event.key.keysym.sym == SDLK_DOWN) etiSpeed = 0.3;
+                case SDL_KEYDOWN: {
+                    switch (event.key.keysym.sym) {
+                        case SDLK_ESCAPE:   // quit game
+                            quit = 1;
+                            break;
+                        case SDLK_n:        // new game
+                            defaultSettings(&game_status);
+                            break;
+                        case SDLK_UP:       // arrows for moves
+                        case SDLK_DOWN:
+                        case SDLK_LEFT:
+                        case SDLK_RIGHT:
+                            moveAll(game_status.blocks, event.key.keysym.sym);
+                            break;
+                        default: break;
+                    }
                     break;
+                }
                 case SDL_KEYUP:
-                    etiSpeed = 1.0;
                     break;
                 case SDL_QUIT:
                     quit = 1;
@@ -147,3 +133,24 @@ int main(int argc, char *argv[]) {
     SDL_Quit();
     return 0;
 };
+
+void defaultSettings(game_t *game_status) {
+    game_status->timer = 0;
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            game_status->blocks[i][j].value = EMPTY;
+            game_status->blocks[i][j].moved = 0;
+        }
+    }
+    game_status->blocks[0][0].value = 2;
+    game_status->blocks[1][0].value = 4;
+    game_status->blocks[2][0].value = 8;
+    game_status->blocks[3][0].value = 16;
+    game_status->blocks[0][1].value = 32;
+    game_status->blocks[1][1].value = 64;
+    game_status->blocks[2][1].value = 128;
+    game_status->blocks[3][1].value = 256;
+    game_status->blocks[0][2].value = 512;
+    game_status->blocks[1][2].value = 1024;
+    game_status->blocks[2][2].value = 2048;
+}

@@ -12,8 +12,10 @@ extern "C" {
 #endif
 
 // draw a text txt on surface screen, starting from the point (x, y)
+// scale multiplies font size, default font size is 8px
 // charset is a 128x128 bitmap containing character images in ASCII order
-void DrawString(SDL_Surface *screen, int x, int y, const char *text, SDL_Surface *charset);
+void DrawString(SDL_Surface *screen, int x, int y, const char *text,
+                SDL_Surface * charset, double scale);
 
 // draw a surface sprite on a surface screen in point (x, y)
 // (x, y) is the center of sprite on screen
@@ -28,6 +30,12 @@ void DrawLine(SDL_Surface *screen, int x, int y, int l, int dx, int dy, Uint32 c
 // draw a rectangle of size l by k
 void DrawRectangle(SDL_Surface *screen, int x, int y, int l, int k,
                    Uint32 outlineColor, Uint32 fillColor);
+
+// display a legend, timer and fps counter
+void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, double timer);
+
+// display board and blocks within it
+void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game_status);
 
 #ifdef __cplusplus
 }
