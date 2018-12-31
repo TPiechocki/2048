@@ -7,8 +7,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include"../sdl-2.0.7/include/SDL.h"
-#include"../sdl-2.0.7/include/SDL_main.h"
+#include"../SDL-2.0.7/include/SDL.h"
+#include"../SDL-2.0.7/include/SDL_main.h"
 
 #define SCREEN_WIDTH	640
 #define SCREEN_HEIGHT	480
@@ -24,6 +24,7 @@ typedef struct {
 
 typedef struct {
     double timer;
+    int points;
     block_t blocks[BOARD_SIZE][BOARD_SIZE];
 }game_t;
 
@@ -31,13 +32,17 @@ typedef struct {
 int InitAll(SDL_Window **window, SDL_Renderer **renderer);
 
 // move all blocks which can be moved in the direction given by the arrow
-int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction);
+int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction, int *points);
+
+void collapseAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction, int *points);
 
 // return colour from given name
 // in main called with "colour(screen, (char *)colour name)"
 // possible colours: black, green, red, blue, border, background, emptyblock
 // and colours for every possible block 2, 4, 8, ..., 2048
 uint32_t colour(SDL_Surface *screen, char *name);
+
+void randomOne(block_t blocks[BOARD_SIZE][BOARD_SIZE]);
 
 #ifdef __cplusplus
 }

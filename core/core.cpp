@@ -87,10 +87,10 @@ uint32_t colour(SDL_Surface *screen, char *name) {
 }
 
 EXTERNC
-int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction) {
+int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction, int *points) {
     // move position is temp position of block moving because of possibility to move up to 3 blocks
-    // temp stores value of block being moved
-    int move_position, temp;
+    // temp stores value of block being moved, status is 0 when nothing was moved
+    int move_position, temp, status = 0;
     switch (direction) {
         case SDLK_UP:
             // check for every block on board
@@ -99,13 +99,22 @@ int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction) {
                     // if block has a value and was not moved during this loop
                     if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
                         move_position = i;
-                        // while nieghbouring block is empty and move stays within the board
+                        // while neighbouring block is empty and move stays within the board
                         while (move_position > 0 && blocks[j][move_position - 1].value == EMPTY) {
                             temp = blocks[j][move_position].value;
                             blocks[j][move_position].value = EMPTY;
                             blocks[j][move_position - 1].value = temp;
                             blocks[j][move_position - 1].moved = 1;
                             --move_position;
+                            status = 1;
+                        }
+                        if (move_position == 0)
+                            continue;
+                        // if block next to moved is the same than change both to one with 2 times higher value
+                        if (blocks[j][move_position - 1].value == blocks[j][move_position].value) {
+                            blocks[j][move_position].value = EMPTY;
+                            blocks[j][move_position - 1].value *= 2;
+                            *points += blocks[j][move_position - 1].value;
                         }
                     }
                 }
@@ -124,6 +133,14 @@ int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction) {
                             blocks[j][move_position + 1].value = temp;
                             blocks[j][move_position + 1].moved = 1;
                             ++move_position;
+                            status = 1;
+                        }
+                        if (move_position == BOARD_SIZE - 1)
+                            continue;
+                        if (blocks[j][move_position + 1].value == blocks[j][move_position].value) {
+                            blocks[j][move_position].value = EMPTY;
+                            blocks[j][move_position + 1].value *= 2;
+                            *points += blocks[j][move_position + 1].value;
                         }
                     }
                 }
@@ -140,6 +157,14 @@ int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction) {
                             blocks[move_position - 1][i].value = temp;
                             blocks[move_position - 1][i].moved = 1;
                             --move_position;
+                            status = 1;
+                        }
+                        if (move_position == 0)
+                            continue;
+                        if (blocks[move_position - 1][i].value == blocks[move_position][i].value) {
+                            blocks[move_position][i].value = EMPTY;
+                            blocks[move_position - 1][i].value *= 2;
+                            *points += blocks[move_position - 1][i].value;
                         }
                     }
                 }
@@ -147,7 +172,7 @@ int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction) {
             break;
         case SDLK_RIGHT:
             for (int i = 0; i < BOARD_SIZE; ++i) {
-                // checking begin from last cloumn of the board, so every tile can move properly
+                // checking begin from last column of the board, so every tile can move properly
                 for (int j = BOARD_SIZE-1; j >= 0; --j) {
                     if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
                         move_position = j;
@@ -157,6 +182,14 @@ int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction) {
                             blocks[move_position + 1][i].value = temp;
                             blocks[move_position + 1][i].moved = 1;
                             ++move_position;
+                            status = 1;
+                        }
+                        if (move_position == BOARD_SIZE - 1)
+                            continue;
+                        if (blocks[move_position + 1][i].value == blocks[move_position][i].value) {
+                            blocks[move_position][i].value = EMPTY;
+                            blocks[move_position + 1][i].value *=2;
+                            *points +=  blocks[move_position + 1][i].value;
                         }
                     }
                 }
@@ -170,5 +203,112 @@ int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction) {
             blocks[i][j].moved = 0;
         }
     }
-    return 0;
+    return status;
+}
+
+void collapseAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction, int *points) {
+    // move position is temp position of block moving because of possibility to move up to 3 blocks
+    // temp stores value of block being moved, status is 0 when nothing was moved
+    int move_position, temp, status = 0;
+    switch (direction) {
+        case SDLK_UP:
+            // check for every block on board
+            for (int i = 0; i < BOARD_SIZE; ++i) {
+                for (int j = 0; j < BOARD_SIZE; ++j) {
+                    // if block has a value and was not moved during this loop
+                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
+                        move_position = i;
+                        if (move_position == 0)
+                            continue;
+                        // if block next to moved is the same than change both to one with 2 times higher value
+                        if (blocks[j][move_position - 1].value == blocks[j][move_position].value) {
+                            blocks[j][move_position].value = EMPTY;
+                            blocks[j][move_position - 1].value *= 2;
+                            *points += blocks[j][move_position - 1].value;
+                        }
+                    }
+                }
+            }
+            break;
+            // for other direction similar
+        case SDLK_DOWN:
+            // checking begin from last row of the board, so every tile can move properly
+            for (int i = BOARD_SIZE-1; i >=0; --i) {
+                for (int j = 0; j < BOARD_SIZE; ++j) {
+                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
+                        move_position = i;
+                        if (move_position == BOARD_SIZE - 1)
+                            continue;
+                        if (blocks[j][move_position + 1].value == blocks[j][move_position].value) {
+                            blocks[j][move_position].value = EMPTY;
+                            blocks[j][move_position + 1].value *= 2;
+                            *points += blocks[j][move_position + 1].value;
+                        }
+                    }
+                }
+            }
+            break;
+        case SDLK_LEFT:
+            for (int i = 0; i < BOARD_SIZE; ++i) {
+                for (int j = 0; j < BOARD_SIZE; ++j) {
+                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
+                        move_position = j;
+                        if (move_position == 0)
+                            continue;
+                        if (blocks[move_position - 1][i].value == blocks[move_position][i].value) {
+                            blocks[move_position][i].value = EMPTY;
+                            blocks[move_position - 1][i].value *= 2;
+                            *points += blocks[move_position - 1][i].value;
+                        }
+                    }
+                }
+            }
+            break;
+        case SDLK_RIGHT:
+            for (int i = 0; i < BOARD_SIZE; ++i) {
+                // checking begin from last column of the board, so every tile can move properly
+                for (int j = BOARD_SIZE-1; j >= 0; --j) {
+                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
+                        move_position = j;
+                        if (move_position == BOARD_SIZE - 1)
+                            continue;
+                        if (blocks[move_position + 1][i].value == blocks[move_position][i].value) {
+                            blocks[move_position][i].value = EMPTY;
+                            blocks[move_position + 1][i].value *=2;
+                            *points +=  blocks[move_position + 1][i].value;
+                        }
+                    }
+                }
+            }
+            break;
+        default:break;
+
+    }
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            blocks[i][j].moved = 0;
+        }
+    }
+}
+
+EXTERNC
+void randomOne(block_t blocks[BOARD_SIZE][BOARD_SIZE]) {
+    int empty = 0;
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            if (blocks[i][j].value == EMPTY)
+                empty++;
+        }
+    }
+    int position = rand() % empty, count = 0;
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            if (position == count && blocks[i][j].value == EMPTY) {
+                blocks[i][j].value = 2;
+                return;
+            }
+            if (blocks[i][j].value == EMPTY)
+                count++;
+        }
+    }
 }

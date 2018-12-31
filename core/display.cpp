@@ -78,12 +78,15 @@ void DrawRectangle(SDL_Surface *screen, int x, int y, int l, int k,
 }
 
 EXTERNC
-void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, double timer) {
+void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, double timer, int points) {
     char text[128];
     int legendPosition = 10;
     sprintf(text, "%.0lf FPS", fps);
     DrawString(screen, GAME_WIDTH + LEGEND_WIDTH - strlen(text)*8 - 8, legendPosition, text, charset, 1);
     legendPosition += 32;
+    sprintf(text, "Points: %d", points);
+    DrawString(screen, GAME_WIDTH + 10, legendPosition, text, charset, 1);
+    legendPosition += 16;
     sprintf(text, "Game duration: %.1lf s ", timer);
     DrawString(screen, GAME_WIDTH + 10, legendPosition, text, charset, 1);
     legendPosition += 32;

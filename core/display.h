@@ -32,7 +32,7 @@ void DrawRectangle(SDL_Surface *screen, int x, int y, int l, int k,
                    Uint32 outlineColor, Uint32 fillColor);
 
 // display a legend, timer and fps counter
-void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, double timer);
+void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, double timer, int points);
 
 // display board and blocks within it
 void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game_status);

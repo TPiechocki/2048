@@ -3,6 +3,7 @@
 #include<math.h>
 #include<stdio.h>
 #include<string.h>
+#include<time.h>
 #include"core/display.h"
 
 void defaultSettings(game_t *game_status);
@@ -14,6 +15,7 @@ extern "C"
 int main(int argc, char *argv[]) {
     int t1, t2, quit, frames;
     double delta, fpsTimer, fps;
+    srand((time_t)time(NULL));
     game_t game_status;
     SDL_Event event;
     SDL_Surface *screen = NULL, *charset = NULL;
@@ -82,7 +84,7 @@ int main(int argc, char *argv[]) {
 
         // info text
         DrawLine(screen, GAME_WIDTH, 0, SCREEN_HEIGHT, 0, 1, colour(screen, (char *)"border"));
-        DrawLegend(screen, charset, fps, game_status.timer);
+        DrawLegend(screen, charset, fps, game_status.timer, game_status.points);
 
         DrawBoard(screen, charset, game_status);
 
@@ -106,7 +108,10 @@ int main(int argc, char *argv[]) {
                         case SDLK_DOWN:
                         case SDLK_LEFT:
                         case SDLK_RIGHT:
-                            moveAll(game_status.blocks, event.key.keysym.sym);
+                            if (moveAll(game_status.blocks, event.key.keysym.sym, &game_status.points)) {
+                                collapseAll(game_status.blocks, event.key.keysym.sym, &game_status.points);
+                                randomOne(game_status.blocks);
+                            }
                             break;
                         default: break;
                     }
@@ -136,13 +141,21 @@ int main(int argc, char *argv[]) {
 
 void defaultSettings(game_t *game_status) {
     game_status->timer = 0;
+    game_status->points = 0;
     for (int i = 0; i < BOARD_SIZE; ++i) {
         for (int j = 0; j < BOARD_SIZE; ++j) {
             game_status->blocks[i][j].value = EMPTY;
             game_status->blocks[i][j].moved = 0;
         }
     }
-    game_status->blocks[0][0].value = 2;
+    //randomOne(game_status->blocks);
+
+    game_status->blocks[0][0].value = 16;
+    game_status->blocks[0][1].value = 8;
+    game_status->blocks[0][2].value = 4;
+    game_status->blocks[0][3].value = 4;
+
+    /*game_status->blocks[0][0].value = 2;
     game_status->blocks[1][0].value = 4;
     game_status->blocks[2][0].value = 8;
     game_status->blocks[3][0].value = 16;
@@ -152,5 +165,5 @@ void defaultSettings(game_t *game_status) {
     game_status->blocks[3][1].value = 256;
     game_status->blocks[0][2].value = 512;
     game_status->blocks[1][2].value = 1024;
-    game_status->blocks[2][2].value = 2048;
+    game_status->blocks[2][2].value = 2048;*/
 }
