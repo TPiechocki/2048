@@ -28,20 +28,47 @@ typedef struct {
     block_t blocks[BOARD_SIZE][BOARD_SIZE];
 }game_t;
 
-// initialise SDL, create windows etc.
+/**
+ * Initialize SDL and create window
+ * @param window
+ * @param renderer
+ * @return 1 on error, normally 0
+ */
 int InitAll(SDL_Window **window, SDL_Renderer **renderer);
 
-// move all blocks which can be moved in the direction given by the arrow
-int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction, int *points);
-
-void collapseAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction, int *points);
-
-// return colour from given name
-// in main called with "colour(screen, (char *)colour name)"
-// possible colours: black, green, red, blue, border, background, emptyblock
-// and colours for every possible block 2, 4, 8, ..., 2048
+/**
+ * return RGBMap of colour of given name
+ * in main called with "colour(screen, (char *)colour name)"
+ * @param screen
+ * @param name - colour name; possible
+ * possible colours: black, green, red, blue, border, background, emptyblock
+ * and colours for every possible block 2, 4, 8, ..., 2048
+ * @return RGBMap of colour or 0 if colour name was not found
+ */
 uint32_t colour(SDL_Surface *screen, char *name);
 
+/**
+ * move all blocks which can be moved in the direction given by the arrow
+ * @param blocks - actual board
+ * @param direction - move direction
+ * @return 1 if anything was moved, 0 if nothing moved
+ */
+int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction);
+
+/**
+ * Merge all block neighbouring in right direction
+ * @param blocks - actual board
+ * @param direction
+ * @param points - player score
+ * @return 1 if anything was mergd, 0 if nothing changed
+ */
+int mergeAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction, int *points);
+
+/**
+ * Put one random block on the board.
+ * "2" with 95% possibility or "4" with 5% possibility
+ * @param blocks - actual board
+ */
 void randomOne(block_t blocks[BOARD_SIZE][BOARD_SIZE]);
 
 #ifdef __cplusplus

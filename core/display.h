@@ -31,10 +31,21 @@ void DrawLine(SDL_Surface *screen, int x, int y, int l, int dx, int dy, Uint32 c
 void DrawRectangle(SDL_Surface *screen, int x, int y, int l, int k,
                    Uint32 outlineColor, Uint32 fillColor);
 
-// display a legend, timer and fps counter
-void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, double timer, int points);
+/**
+ * Draw a legend
+ * @param screen
+ * @param charset - font
+ * @param fps - frames per second value
+ * @param game_status - game structure (timer from start and player's points)
+ */
+void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, game_t game_status);
 
-// display board and blocks within it
+/**
+ * Display board and blocks within it
+ * @param screen
+ * @param charset - font
+ * @param game_status - game structure (board)
+ */
 void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game_status);
 
 #ifdef __cplusplus

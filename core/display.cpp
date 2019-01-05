@@ -78,16 +78,16 @@ void DrawRectangle(SDL_Surface *screen, int x, int y, int l, int k,
 }
 
 EXTERNC
-void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, double timer, int points) {
+void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, game_t game_status) {
     char text[128];
     int legendPosition = 10;
     sprintf(text, "%.0lf FPS", fps);
-    DrawString(screen, GAME_WIDTH + LEGEND_WIDTH - strlen(text)*8 - 8, legendPosition, text, charset, 1);
+    DrawString(screen, GAME_WIDTH + LEGEND_WIDTH - (int)strlen(text)*8 - 8, legendPosition, text, charset, 1);
     legendPosition += 32;
-    sprintf(text, "Points: %d", points);
+    sprintf(text, "Points: %d", game_status.points);
     DrawString(screen, GAME_WIDTH + 10, legendPosition, text, charset, 1);
     legendPosition += 16;
-    sprintf(text, "Game duration: %.1lf s ", timer);
+    sprintf(text, "Game duration: %.1lf s ", game_status.timer);
     DrawString(screen, GAME_WIDTH + 10, legendPosition, text, charset, 1);
     legendPosition += 32;
     sprintf(text, " Esc  - exit");
@@ -126,7 +126,7 @@ void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game_status) {
                     sprintf(txt, "%d", game_status.blocks[j][i].value);
                     DrawRectangle(screen, width * (j + 1), height * (i + 1), width, height,
                                   colour(screen, (char *)"black"), colour(screen, txt));
-                    DrawString(screen, (width * (j + 1)) + width/2 - strlen(txt)*(int)(4*scale),
+                    DrawString(screen, (width * (j + 1)) + width/2 - (int)(strlen(txt)*4*scale),
                                height * (i + 1) + height/2 - (int)(4*scale), txt, charset, scale);
                     break;
             }
