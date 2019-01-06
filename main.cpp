@@ -6,26 +6,26 @@
 #include<time.h>
 #include"core/display.h"
 
-void defaultSettings(game_t *game_status);
+void defaultSettings(game_t *game_status, int *quit, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer,
+                     SDL_Surface *charset);
 
 // main
 #ifdef __cplusplus
 extern "C"
 #endif
 int main(int argc, char *argv[]) {
-    int t1, t2, quit, frames;
+
+    int t1, t2, quit, frames, size = 0;
     double delta, fpsTimer, fps, moveStatus;
     srand((unsigned int)time(NULL));
     game_t game_status;
+    game_status.blocks = NULL;
+    game_status.previous = NULL;
     SDL_Event event;
     SDL_Surface *screen = NULL, *charset = NULL;
     SDL_Texture *scrtex = NULL;
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
-
-    defaultSettings(&game_status);
-
-    printf("printf output goes here\n");
 
     if(InitAll(&window, &renderer))
         return 1;
@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
                                SDL_TEXTUREACCESS_STREAMING,
                                SCREEN_WIDTH, SCREEN_HEIGHT);
 
+    SDL_FillRect(screen, NULL, colour(screen, (char *)"background"));
 
     charset = SDL_LoadBMP("./cs8x8.bmp");
     if(charset == NULL) {
@@ -56,6 +57,11 @@ int main(int argc, char *argv[]) {
     fpsTimer = 0;
     fps = 0;
     quit = 0;
+
+    prompt(screen, charset, (char *)"Set board size: 3-9");
+    updateScreen(screen, scrtex, renderer);
+
+    defaultSettings(&game_status, &quit, screen, scrtex, renderer, charset);
 
     while(!quit) {
         t2 = SDL_GetTicks();
@@ -83,10 +89,13 @@ int main(int argc, char *argv[]) {
 
         DrawBoard(screen, charset, game_status);
 
-        SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
-		SDL_RenderClear(renderer);
-        SDL_RenderCopy(renderer, scrtex, NULL, NULL);
-        SDL_RenderPresent(renderer);
+        if (isEnd(game_status) == 1)
+            prompt(screen, charset, (char *)"Congatulations");
+        if (isEnd(game_status) == 2)
+            prompt(screen, charset, (char *)"No possible move");
+
+
+        updateScreen(screen, scrtex, renderer);
 
         // handling of events (if there were any)
         while(SDL_PollEvent(&event)) {
@@ -97,16 +106,18 @@ int main(int argc, char *argv[]) {
                             quit = 1;
                             break;
                         case SDLK_n:        // new game
-                            defaultSettings(&game_status);
+                            prompt(screen, charset, (char *)"Set board size: 3-9");
+                            updateScreen(screen, scrtex, renderer);
+                            defaultSettings(&game_status, &quit, screen, scrtex, renderer, charset);
                             break;
                         case SDLK_UP:       // arrows for moves
                         case SDLK_DOWN:
                         case SDLK_LEFT:
                         case SDLK_RIGHT:
-                            moveStatus = moveAll(game_status.blocks, event.key.keysym.sym);
-                            moveStatus += mergeAll(game_status.blocks, event.key.keysym.sym, &game_status.points);
+                            moveStatus = moveAll(&game_status, event.key.keysym.sym);
+                            moveStatus += mergeAll(&game_status, event.key.keysym.sym);
                             if (moveStatus) {
-                                randomOne(game_status.blocks);
+                                randomOne(&game_status);
                             }
                             break;
                         default: break;
@@ -124,27 +135,122 @@ int main(int argc, char *argv[]) {
         frames++;
     };
 
-    // freeing all surfaces
+    // freeing all surfaces and allocated memory
     SDL_FreeSurface(charset);
     SDL_FreeSurface(screen);
     SDL_DestroyTexture(scrtex);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
 
+    if (game_status.blocks != NULL) {
+        for (int i = 0; i < size; ++i) {
+            free(game_status.blocks[i]);
+        }
+        free(game_status.blocks);
+    }
+    if (game_status.previous != NULL) {
+        for (int i = 0; i < size; ++i) {
+            free(game_status.previous[i]);
+        }
+        free(game_status.previous);
+    }
+
     SDL_Quit();
     return 0;
 };
 
-void defaultSettings(game_t *game_status) {
-    game_status->timer = 0;
-    game_status->points = 0;
-    for (int i = 0; i < BOARD_SIZE; ++i) {
-        for (int j = 0; j < BOARD_SIZE; ++j) {
-            game_status->blocks[i][j].value = EMPTY;
-            game_status->blocks[i][j].moved = 0;
+void defaultSettings(game_t *game_status, int *quit, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer,
+                     SDL_Surface *charset) {
+    SDL_Event event;
+    int size = 0;
+    while ((size < 3 || size > 9)) {
+        while(SDL_PollEvent(&event)) {
+            switch (event.type) {
+                case SDL_KEYDOWN:
+                    if (event.key.keysym.sym == SDLK_ESCAPE) {
+                        *quit = 1;
+                        return;
+                    }
+                    else if (event.key.keysym.sym >= SDLK_3 && event.key.keysym.sym <= SDLK_9) {
+                        size = event.key.keysym.sym - SDLK_1 + 1;
+                        break;
+                    }
+                    else if (event.key.keysym.sym >= SDLK_KP_3 && event.key.keysym.sym <= SDLK_KP_9) {
+                        size = event.key.keysym.sym - SDLK_KP_1 + 1;
+                        break;
+                    }
+                    break;
+                case SDL_KEYUP:
+                    break;
+                case SDL_QUIT:
+                    *quit = 1;
+                    return;
+                default:break;
+            }
         }
     }
-    randomOne(game_status->blocks);
+
+    // free on new game in the same instance
+    if (game_status->blocks != NULL) {
+        for (int i = 0; i < size; ++i) {
+            free(game_status->blocks[i]);
+        }
+        free(game_status->blocks);
+    }
+    if (game_status->previous != NULL) {
+        for (int i = 0; i < size; ++i) {
+            free(game_status->previous[i]);
+        }
+        free(game_status->previous);
+    }
+
+    game_status->timer = 0;
+    game_status->points = 0;
+    game_status->board_size = size;
+    game_status->blocks = (block_t **)malloc(sizeof(block_t *)*size);
+    if (game_status->blocks) {
+        for (int i = 0; i < size; ++i) {
+            game_status->blocks[i] = (block_t *) malloc(sizeof(block_t) * size);
+            if (game_status->blocks[i] == NULL) {
+                *quit = 1;
+                error(screen, scrtex, renderer, charset, (char *)"Error: Not enough memory.");
+                return;
+            }
+            for (int j = 0; j < size; ++j) {
+                game_status->blocks[i][j].value = EMPTY;
+                game_status->blocks[i][j].moved = 0;
+            }
+        }
+    }
+    else {
+        *quit = 1;
+        error(screen, scrtex, renderer, charset, (char *)"Error: Not enough memory.");
+        return;
+    }
+
+    game_status->previous = (block_t **)malloc(sizeof(block_t *)*size);
+    if (game_status->previous) {
+        for (int i = 0; i < size; ++i) {
+            game_status->previous[i] = (block_t *) malloc(sizeof(block_t) * size);
+            if (game_status->previous[i] == NULL) {
+                *quit = 1;
+                error(screen, scrtex, renderer, charset, (char *)"Error: Not enough memory.");
+                return;
+            }
+            for (int j = 0; j < size; ++j) {
+                game_status->previous[i][j].value = EMPTY;
+                game_status->previous[i][j].moved = 0;
+            }
+        }
+    }
+    else {
+        *quit = 1;
+        error(screen, scrtex, renderer, charset, (char *)"Error: Not enough memory.");
+        return;
+    }
+
+
+    randomOne(game_status);
 
     /*game_status->blocks[0][0].value = 2;
     game_status->blocks[1][0].value = 4;

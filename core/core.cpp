@@ -21,12 +21,12 @@
  * Move one block of x,y coordinates
  * @param blocks - actual board
  * @param x - x coordinate of block
- * @param y - actual y coordinate of block
+ * @param y -  y coordinate of block
  * @param horizontal - -1 for left; +1 for right
  * @param vertical - -1 for up; +1 for down
- * @return -1 for error, 0 if no move, 1 if anything was moved
+ * @return -1 for error, 0 if no move, 1 block was moved
  */
-int moveOne(block_t blocks[BOARD_SIZE][BOARD_SIZE], int x, int y, int horizontal, int vertical) {
+int moveOne(game_t *game, int x, int y, int horizontal, int vertical) {
     if (horizontal != 0 && vertical != 0) {
         printf("Move can be only in one dimension");
         return -1;
@@ -38,17 +38,52 @@ int moveOne(block_t blocks[BOARD_SIZE][BOARD_SIZE], int x, int y, int horizontal
     int actual_x = x, actual_y = y, temp, status = 0;
     // while neighbouring block is empty and move stays within the board
     while (actual_x + horizontal >= 0 && actual_y + vertical >= 0 &&
-           actual_x + horizontal < BOARD_SIZE && actual_y + vertical < BOARD_SIZE &&
-           blocks[actual_x + horizontal][actual_y + vertical].value == EMPTY) {
-        temp = blocks[actual_x][actual_y].value;
-        blocks[actual_x][actual_y].value = EMPTY;
-        blocks[actual_x + horizontal][actual_y + vertical].value = temp;
-        blocks[actual_x + horizontal][actual_y + vertical].moved = 1;
+           actual_x + horizontal < game->board_size && actual_y + vertical < game->board_size &&
+           game->blocks[actual_x + horizontal][actual_y + vertical].value == EMPTY) {
+        temp = game->blocks[actual_x][actual_y].value;
+        game->blocks[actual_x][actual_y].value = EMPTY;
+        game->blocks[actual_x][actual_y].moved = 0;
+        game->blocks[actual_x + horizontal][actual_y + vertical].value = temp;
+        game->blocks[actual_x + horizontal][actual_y + vertical].moved = 1;
         actual_x += horizontal;
         actual_y += vertical;
         status = 1;
     }
     return status;
+}
+
+/**
+ * Check block and if possible merge it with neighbouring one
+ * @param blocks - actual board
+ * @param x - x coordinate of block
+ * @param y -  y coordinate of block
+ * @param horizontal - -1 for left; +1 for right
+ * @param vertical - -1 for up; +1 for down
+ * @param points - player's score
+ * @return -1 for error, 0 if no change on board, 1 if block was merged
+ */
+int mergeOne(game_t *game, int x, int y, int horizontal, int vertical) {
+    if (horizontal != 0 && vertical != 0) {
+        printf("Move can be only in one dimension");
+        return -1;
+    }
+    if (horizontal > 1 || horizontal < -1 || vertical > 1 || vertical < -1) {
+        printf("Move can only have value 1 or -1");
+        return -1;
+    }
+
+    if (x + horizontal < 0 || y + vertical < 0 ||
+        x + horizontal >= game->board_size || y + vertical >= game->board_size)
+        return 0;
+    // if block next to moved is the same than change both to one with 2 times higher value
+    if (game->blocks[x + horizontal][y + vertical].value == game->blocks[x][y].value) {
+        game->blocks[x][y].value = EMPTY;
+        game->blocks[x + horizontal][y + vertical].value *= 2;
+        game->points += game->blocks[x + horizontal][y + vertical].value;
+        return  1;
+    }
+
+    return 0;
 }
 
 EXTERNC
@@ -89,6 +124,8 @@ uint32_t colour(SDL_Surface *screen, char *name) {
         return SDL_MapRGB(screen->format, 0xFF, 0x00, 0x00);
     if (strcmp(name, "blue") == 0)
         return SDL_MapRGB(screen->format, 0x11, 0x11, 0xCC);
+    if (strcmp(name, "white") == 0)
+        return SDL_MapRGB(screen->format, 0xFF, 0xFF, 0xFF);
     if (strcmp(name, "background") == 0)
         return SDL_MapRGB(screen->format, 0xA0, 0xA0, 0xA0);
     if (strcmp(name, "border") == 0)
@@ -121,30 +158,19 @@ uint32_t colour(SDL_Surface *screen, char *name) {
 }
 
 EXTERNC
-int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction) {
+int moveAll(game_t *game, int direction) {
     // move position is temp position of block moving because of possibility to move up to 3 blocks
     // temp stores value of block being moved, status is 0 when nothing was moved
     int move_position, temp, status = 0;
     switch (direction) {
         case SDLK_UP:
             // check for every block on board
-            for (int i = 0; i < BOARD_SIZE; ++i) {
-                for (int j = 0; j < BOARD_SIZE; ++j) {
+            for (int i = 0; i < game->board_size; ++i) {
+                for (int j = 0; j < game->board_size; ++j) {
                     // if block has a value and was not moved during this loop
-                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
-                        if (moveOne(blocks, j, i, 0, -1) == 1)
+                    if (game->blocks[j][i].value != EMPTY && game->blocks[j][i].moved == 0) {
+                        if (moveOne(game, j, i, 0, -1) == 1)
                             status += 1;
-
-                        /*move_position = i;
-                        // while neighbouring block is empty and move stays within the board
-                        while (move_position > 0 && blocks[j][move_position - 1].value == EMPTY) {
-                            temp = blocks[j][move_position].value;
-                            blocks[j][move_position].value = EMPTY;
-                            blocks[j][move_position - 1].value = temp;
-                            blocks[j][move_position - 1].moved = 1;
-                            --move_position;
-                            status = 1;
-                        }*/
                     }
                 }
             }
@@ -152,64 +178,32 @@ int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction) {
         // for other direction similar
         case SDLK_DOWN:
             // checking begin from last row of the board, so every tile can move properly
-            for (int i = BOARD_SIZE-1; i >=0; --i) {
-                for (int j = 0; j < BOARD_SIZE; ++j) {
-                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
-                        if (moveOne(blocks, j, i, 0, 1) == 1)
+            for (int i = game->board_size-1; i >=0; --i) {
+                for (int j = 0; j < game->board_size; ++j) {
+                    if (game->blocks[j][i].value != EMPTY && game->blocks[j][i].moved == 0) {
+                        if (moveOne(game, j, i, 0, 1) == 1)
                             status += 1;
-
-                        /*move_position = i;
-                        while (move_position < BOARD_SIZE-1 && blocks[j][move_position + 1].value == EMPTY) {
-                            temp = blocks[j][move_position].value;
-                            blocks[j][move_position].value = EMPTY;
-                            blocks[j][move_position + 1].value = temp;
-                            blocks[j][move_position + 1].moved = 1;
-                            ++move_position;
-                            status = 1;
-                        }*/
                     }
                 }
             }
             break;
         case SDLK_LEFT:
-            for (int i = 0; i < BOARD_SIZE; ++i) {
-                for (int j = 0; j < BOARD_SIZE; ++j) {
-                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
-                        if (moveOne(blocks, j, i, -1, 0) == 1)
+            for (int i = 0; i < game->board_size; ++i) {
+                for (int j = 0; j < game->board_size; ++j) {
+                    if (game->blocks[j][i].value != EMPTY && game->blocks[j][i].moved == 0) {
+                        if (moveOne(game, j, i, -1, 0) == 1)
                             status += 1;
-
-                        /*
-                        move_position = j;
-                        while (move_position > 0 && blocks[move_position - 1][i].value == EMPTY) {
-                            temp = blocks[move_position][i].value;
-                            blocks[move_position][i].value = EMPTY;
-                            blocks[move_position - 1][i].value = temp;
-                            blocks[move_position - 1][i].moved = 1;
-                            --move_position;
-                            status = 1;
-                        }*/
                     }
                 }
             }
             break;
         case SDLK_RIGHT:
-            for (int i = 0; i < BOARD_SIZE; ++i) {
+            for (int i = 0; i < game->board_size; ++i) {
                 // checking begin from last column of the board, so every tile can move properly
-                for (int j = BOARD_SIZE-1; j >= 0; --j) {
-                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
-                        if (moveOne(blocks, j, i, 1, 0) == 1)
+                for (int j = game->board_size-1; j >= 0; --j) {
+                    if (game->blocks[j][i].value != EMPTY && game->blocks[j][i].moved == 0) {
+                        if (moveOne(game, j, i, 1, 0) == 1)
                             status += 1;
-
-                        /*
-                        move_position = j;
-                        while (move_position < BOARD_SIZE-1 && blocks[move_position + 1][i].value == EMPTY) {
-                            temp = blocks[move_position][i].value;
-                            blocks[move_position][i].value = EMPTY;
-                            blocks[move_position + 1][i].value = temp;
-                            blocks[move_position + 1][i].moved = 1;
-                            ++move_position;
-                            status = 1;
-                        }*/
                     }
                 }
             }
@@ -217,36 +211,28 @@ int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction) {
         default:break;
 
     }
-    for (int i = 0; i < BOARD_SIZE; ++i) {
-        for (int j = 0; j < BOARD_SIZE; ++j) {
-            blocks[i][j].moved = 0;
+    for (int i = 0; i < game->board_size; ++i) {
+        for (int j = 0; j < game->board_size; ++j) {
+            game->blocks[i][j].moved = 0;
         }
     }
     return status;
 }
 
 EXTERNC
-int mergeAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction, int *points) {
-    // move position is temp position of block moving because of possibility to move up to 3 blocks
-    // temp stores value of block being moved, status is 0 when nothing was moved
-    int move_position, temp, status = 0;
+int mergeAll(game_t *game, int direction) {
+    // status is 0 when nothing was moved
+    int status = 0;
     switch (direction) {
         case SDLK_UP:
             // check for every block on board
-            for (int i = 0; i < BOARD_SIZE; ++i) {
-                for (int j = 0; j < BOARD_SIZE; ++j) {
+            for (int i = 0; i < game->board_size; ++i) {
+                for (int j = 0; j < game->board_size; ++j) {
                     // if block has a value and was not moved during this loop
-                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
-                        move_position = i;
-                        if (move_position == 0)
-                            continue;
-                        // if block next to moved is the same than change both to one with 2 times higher value
-                        if (blocks[j][move_position - 1].value == blocks[j][move_position].value) {
-                            blocks[j][move_position].value = EMPTY;
-                            blocks[j][move_position - 1].value *= 2;
-                            *points += blocks[j][move_position - 1].value;
-                            moveAll(blocks, direction);     // adjust position again
-                            status = 1;
+                    if (game->blocks[j][i].value != EMPTY) {
+                        if (mergeOne(game, j, i, 0, -1) == 1) {
+                            moveAll(game, direction);
+                            status += 1;
                         }
                     }
                 }
@@ -255,55 +241,38 @@ int mergeAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction, int *points)
             // for other direction similar
         case SDLK_DOWN:
             // checking begin from last row of the board, so every tile can move properly
-            for (int i = BOARD_SIZE-1; i >=0; --i) {
-                for (int j = 0; j < BOARD_SIZE; ++j) {
-                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
-                        move_position = i;
-                        if (move_position == BOARD_SIZE - 1)
-                            continue;
-                        if (blocks[j][move_position + 1].value == blocks[j][move_position].value) {
-                            blocks[j][move_position].value = EMPTY;
-                            blocks[j][move_position + 1].value *= 2;
-                            *points += blocks[j][move_position + 1].value;
-                            moveAll(blocks, direction);
-                            status = 1;
+            for (int i = game->board_size-1; i >=0; --i) {
+                for (int j = 0; j < game->board_size; ++j) {
+                    if (game->blocks[j][i].value != EMPTY) {
+                        if (mergeOne(game, j, i, 0, 1) == 1) {
+                            moveAll(game, direction);
+                            status += 1;
                         }
                     }
                 }
             }
             break;
         case SDLK_LEFT:
-            for (int i = 0; i < BOARD_SIZE; ++i) {
-                for (int j = 0; j < BOARD_SIZE; ++j) {
-                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
-                        move_position = j;
-                        if (move_position == 0)
-                            continue;
-                        if (blocks[move_position - 1][i].value == blocks[move_position][i].value) {
-                            blocks[move_position][i].value = EMPTY;
-                            blocks[move_position - 1][i].value *= 2;
-                            *points += blocks[move_position - 1][i].value;
-                            moveAll(blocks, direction);
-                            status = 1;
+            for (int i = 0; i < game->board_size; ++i) {
+                for (int j = 0; j < game->board_size; ++j) {
+                    if (game->blocks[j][i].value != EMPTY) {
+                        if (mergeOne(game, j, i, -1, 0) == 1) {
+                            moveAll(game, direction);
+                            status += 1;
                         }
+
                     }
                 }
             }
             break;
         case SDLK_RIGHT:
-            for (int i = 0; i < BOARD_SIZE; ++i) {
+            for (int i = 0; i < game->board_size; ++i) {
                 // checking begin from last column of the board, so every tile can move properly
-                for (int j = BOARD_SIZE-1; j >= 0; --j) {
-                    if (blocks[j][i].value != EMPTY && blocks[j][i].moved == 0) {
-                        move_position = j;
-                        if (move_position == BOARD_SIZE - 1)
-                            continue;
-                        if (blocks[move_position + 1][i].value == blocks[move_position][i].value) {
-                            blocks[move_position][i].value = EMPTY;
-                            blocks[move_position + 1][i].value *=2;
-                            *points +=  blocks[move_position + 1][i].value;
-                            moveAll(blocks, direction);
-                            status = 1;
+                for (int j = game->board_size-1; j >= 0; --j) {
+                    if (game->blocks[j][i].value != EMPTY) {
+                        if (mergeOne(game, j, i, 1, 0) == 1) {
+                            moveAll(game, direction);
+                            status += 1;
                         }
                     }
                 }
@@ -317,7 +286,7 @@ int mergeAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction, int *points)
 }
 
 EXTERNC
-void randomOne(block_t blocks[BOARD_SIZE][BOARD_SIZE]) {
+void randomOne(game_t *game) {
     int empty = 0, value;
 
     // pick 2 or 4 (4 with 5% possibility)
@@ -327,21 +296,53 @@ void randomOne(block_t blocks[BOARD_SIZE][BOARD_SIZE]) {
     else
         value = 2;
 
-    for (int i = 0; i < BOARD_SIZE; ++i) {
-        for (int j = 0; j < BOARD_SIZE; ++j) {
-            if (blocks[i][j].value == EMPTY)
+    for (int i = 0; i < game->board_size; ++i) {
+        for (int j = 0; j < game->board_size; ++j) {
+            if (game->blocks[i][j].value == EMPTY)
                 empty++;
         }
     }
     int position = rand() % empty, count = 0;
-    for (int i = 0; i < BOARD_SIZE; ++i) {
-        for (int j = 0; j < BOARD_SIZE; ++j) {
-            if (position == count && blocks[i][j].value == EMPTY) {
-                blocks[i][j].value = value;
+    for (int i = 0; i < game->board_size; ++i) {
+        for (int j = 0; j < game->board_size; ++j) {
+            if (position == count && game->blocks[i][j].value == EMPTY) {
+                game->blocks[i][j].value = value;
                 return;
             }
-            if (blocks[i][j].value == EMPTY)
+            if (game->blocks[i][j].value == EMPTY)
                 count++;
         }
     }
+}
+
+EXTERNC
+int isEnd(game_t game) {
+    int empty = 0;
+
+    // look for 2048 block or empty block
+    for (int i = 0; i < game.board_size; ++i) {
+        for (int j = 0; j < game.board_size; ++j) {
+            if (game.blocks[i][j].value == 2048)
+                return 1;   // win if any of the blocks is 2048
+            if (game.blocks[i][j].value == EMPTY)
+                empty = 1;
+        }
+    }
+    if (empty == 1)     // continue if there's at least one empty
+        return 0;
+
+    // look for two same blocks next to each other
+    for (int i = 0; i < game.board_size; ++i) {
+        for (int j = 0; j < game.board_size; ++j) {
+            if (i < game.board_size-1)
+                if (game.blocks[i][j].value == game.blocks[i+1][j].value)
+                    return 0;
+
+            if (j < game.board_size-1)
+                if (game.blocks[i][j].value == game.blocks[i][j+1].value)
+                    return 0;
+        }
+    }
+
+    return 2;   // no win and no possible move
 }

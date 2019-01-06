@@ -11,6 +11,8 @@
 extern "C" {
 #endif
 
+void updateScreen(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer);
+
 // draw a text txt on surface screen, starting from the point (x, y)
 // scale multiplies font size, default font size is 8px
 // charset is a 128x128 bitmap containing character images in ASCII order
@@ -44,9 +46,27 @@ void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, game_t ga
  * Display board and blocks within it
  * @param screen
  * @param charset - font
- * @param game_status - game structure (board)
+ * @param game - game structure (board)
  */
-void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game_status);
+void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game);
+
+/**
+ * Put prompt into screen surface
+ * @param screen
+ * @param charset
+ * @param msg - message to be displayed
+ */
+void prompt(SDL_Surface *screen, SDL_Surface *charset, char *msg);
+
+/**
+ * Also show prompt but this time wait for enter or escape and quit the program.
+ * @param screen
+ * @param scrtex
+ * @param renderer
+ * @param charset - font
+ * @param msg - message to be shown
+ */
+void error(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset, char *msg);
 
 #ifdef __cplusplus
 }

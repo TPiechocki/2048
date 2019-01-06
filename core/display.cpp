@@ -6,6 +6,7 @@
 #include<stdio.h>
 #include<string.h>
 #include"display.h"
+#include "display.h"
 
 
 #ifdef __GNUC__
@@ -16,6 +17,14 @@
 #else
 #define EXTERNC
 #endif
+
+EXTERNC
+void updateScreen(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer) {
+    SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, scrtex, NULL, NULL);
+    SDL_RenderPresent(renderer);
+}
 
 EXTERNC
 void DrawString(SDL_Surface *screen, int x, int y, const char *text,
@@ -101,34 +110,67 @@ void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, game_t ga
 }
 
 EXTERNC
-void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game_status) {
+void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game) {
     // width and height of single block, board with padding of one block
-    int width = GAME_WIDTH/(BOARD_SIZE+2);
-    int height = SCREEN_HEIGHT/(BOARD_SIZE+2);
+    int width = GAME_WIDTH/(game.board_size+2);
+    int height = SCREEN_HEIGHT/(game.board_size+2);
 
     // board border
-    DrawLine(screen, width-1, height-1, 4*height + 2, 0, 1, colour(screen, (char *)"black"));
-    DrawLine(screen, 5*width, height-1, 4*height + 2, 0, 1, colour(screen, (char *)"black"));
-    DrawLine(screen, width-1, height-1, 4*width + 2, 1, 0, colour(screen, (char *)"black"));
-    DrawLine(screen, width-1, 5*height, 4*width + 2, 1, 0, colour(screen, (char *)"black"));
+    DrawLine(screen, width-1, height-1, game.board_size*height + 2, 0, 1, colour(screen, (char *)"black"));
+    DrawLine(screen, (game.board_size+1)*width, height-1, game.board_size*height + 2, 0, 1, colour(screen, (char *)"black"));
+    DrawLine(screen, width-1, height-1, game.board_size*width + 2, 1, 0, colour(screen, (char *)"black"));
+    DrawLine(screen, width-1, (game.board_size+1)*height, game.board_size*width + 2, 1, 0, colour(screen, (char *)"black"));
 
     //blocks
-    for (int i = 0; i < BOARD_SIZE ; ++i) {
-        for (int j = 0; j < BOARD_SIZE; ++j) {
+    for (int i = 0; i < game.board_size ; ++i) {
+        for (int j = 0; j < game.board_size; ++j) {
             char txt[10];
-            double scale = 1.8;
-            switch (game_status.blocks[j][i].value) {
+            float scale = width/(4*8);
+            switch (game.blocks[j][i].value) {
                 case EMPTY:
                     DrawRectangle(screen, width * (j + 1), height * (i + 1), width, height,
                                   colour(screen, (char *)"black"), colour(screen, (char *)"emptyblock"));
                     break;
                 default:    // for full tiles
-                    sprintf(txt, "%d", game_status.blocks[j][i].value);
+                    sprintf(txt, "%d", game.blocks[j][i].value);
                     DrawRectangle(screen, width * (j + 1), height * (i + 1), width, height,
                                   colour(screen, (char *)"black"), colour(screen, txt));
                     DrawString(screen, (width * (j + 1)) + width/2 - (int)(strlen(txt)*4*scale),
                                height * (i + 1) + height/2 - (int)(4*scale), txt, charset, scale);
                     break;
+            }
+        }
+    }
+}
+
+EXTERNC
+void prompt(SDL_Surface *screen, SDL_Surface *charset, char *msg) {
+    DrawRectangle(screen, SCREEN_WIDTH/10, SCREEN_HEIGHT/10, 8*SCREEN_WIDTH/10, 8*SCREEN_HEIGHT/10,
+                  colour(screen, (char *)"black"), colour(screen, (char *)"white"));
+    float scale = 1.5;
+    DrawString(screen, SCREEN_WIDTH/2 - (int)(strlen(msg)*4*scale), SCREEN_HEIGHT/2 - (int)(4*scale), msg, charset, scale);
+}
+
+EXTERNC
+void error(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset, char *msg) {
+    prompt(screen, charset, msg);
+
+    updateScreen(screen, scrtex, renderer);
+
+    SDL_Event event;
+    while (1) {
+        while(SDL_PollEvent(&event)) {
+            switch (event.type) {
+                case SDL_KEYDOWN:
+                    if (event.key.keysym.sym == SDLK_ESCAPE || event.key.keysym.sym == SDLK_RETURN) {
+                        return;
+                    }
+                    break;
+                case SDL_KEYUP:
+                    break;
+                case SDL_QUIT:
+                    return;
+                default:break;
             }
         }
     }

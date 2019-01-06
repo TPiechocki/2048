@@ -14,18 +14,20 @@ extern "C" {
 #define SCREEN_HEIGHT	480
 #define GAME_WIDTH (SCREEN_WIDTH*2/3)
 #define LEGEND_WIDTH (SCREEN_WIDTH*1/3)
-#define BOARD_SIZE 4
 #define EMPTY 0
 
 typedef struct {
     int value;
-    int moved;      // 1 if this tile was moved already in this move, 2 if not
+    int moved;          // 1 if this tile was moved already in this move, 0 if not
+    int move_length;    // length of the move for animation purpose
 }block_t;
 
 typedef struct {
-    double timer;
-    int points;
-    block_t blocks[BOARD_SIZE][BOARD_SIZE];
+    double timer;           // time from game beginning
+    int points;             // player's score
+    int board_size;         // size between 3 and 9
+    block_t **blocks;       // actual board
+    block_t **previous;     // for animation purposes
 }game_t;
 
 /**
@@ -53,7 +55,7 @@ uint32_t colour(SDL_Surface *screen, char *name);
  * @param direction - move direction
  * @return 1 if anything was moved, 0 if nothing moved
  */
-int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction);
+int moveAll(game_t *game, int direction);
 
 /**
  * Merge all block neighbouring in right direction
@@ -62,14 +64,21 @@ int moveAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction);
  * @param points - player score
  * @return 1 if anything was mergd, 0 if nothing changed
  */
-int mergeAll(block_t blocks[BOARD_SIZE][BOARD_SIZE], int direction, int *points);
+int mergeAll(game_t *game, int direction);
 
 /**
  * Put one random block on the board.
  * "2" with 95% possibility or "4" with 5% possibility
  * @param blocks - actual board
  */
-void randomOne(block_t blocks[BOARD_SIZE][BOARD_SIZE]);
+void randomOne(game_t *game);
+
+/**
+ * Check if game should end; either win or no possible move
+ * @param game
+ * @return 0 - continue game, 1 - win, 2 - no possible move
+ */
+int isEnd(game_t game);
 
 #ifdef __cplusplus
 }
