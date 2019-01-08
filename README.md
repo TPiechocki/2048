@@ -2,6 +2,7 @@
 Second Project for Basics of Programming.
 
 0.2
+- player can undo last move
 - block with the same value in good direction collapse into one
 - count points
 - player choose board size on start (3-9)

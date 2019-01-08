@@ -48,6 +48,9 @@ int moveOne(game_t *game, int x, int y, int horizontal, int vertical) {
         actual_x += horizontal;
         actual_y += vertical;
         status = 1;
+
+        // for animation purpose
+        ++game->previous[x][y].move_length;
     }
     return status;
 }
@@ -159,6 +162,12 @@ uint32_t colour(SDL_Surface *screen, char *name) {
 
 EXTERNC
 int moveAll(game_t *game, int direction) {
+    // reset animation info
+    for (int i = 0; i < game->board_size; ++i) {
+        for (int j = 0; j < game->board_size; ++j) {
+            game->previous[i][j].move_length = 0;
+        }
+    }
     // move position is temp position of block moving because of possibility to move up to 3 blocks
     // temp stores value of block being moved, status is 0 when nothing was moved
     int move_position, temp, status = 0;
@@ -346,3 +355,14 @@ int isEnd(game_t game) {
 
     return 2;   // no win and no possible move
 }
+
+EXTERNC
+void copyBoard(block_t **source, block_t **destination, int size) {
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            destination[i][j].value = source[i][j].value;
+        }
+
+    }
+}
+

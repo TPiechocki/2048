@@ -80,6 +80,8 @@ void randomOne(game_t *game);
  */
 int isEnd(game_t game);
 
+void copyBoard(block_t **source, block_t **destination, int size);
+
 #ifdef __cplusplus
 }
 #endif

@@ -14,8 +14,7 @@ void defaultSettings(game_t *game_status, int *quit, SDL_Surface *screen, SDL_Te
 extern "C"
 #endif
 int main(int argc, char *argv[]) {
-
-    int t1, t2, quit, frames, size = 0;
+    int t1, t2, quit = 0, frames = 0, size = 0;
     double delta, fpsTimer, fps, moveStatus;
     srand((unsigned int)time(NULL));
     game_t game_status;
@@ -51,17 +50,14 @@ int main(int argc, char *argv[]) {
     };
     SDL_SetColorKey(charset, true, 0xFFFFFF);
 
-    t1 = SDL_GetTicks();
-
-    frames = 0;
     fpsTimer = 0;
     fps = 0;
-    quit = 0;
 
     prompt(screen, charset, (char *)"Set board size: 3-9");
     updateScreen(screen, scrtex, renderer);
 
     defaultSettings(&game_status, &quit, screen, scrtex, renderer, charset);
+    t1 = SDL_GetTicks();
 
     while(!quit) {
         t2 = SDL_GetTicks();
@@ -109,17 +105,21 @@ int main(int argc, char *argv[]) {
                             prompt(screen, charset, (char *)"Set board size: 3-9");
                             updateScreen(screen, scrtex, renderer);
                             defaultSettings(&game_status, &quit, screen, scrtex, renderer, charset);
+                            t1 = SDL_GetTicks();
                             break;
                         case SDLK_UP:       // arrows for moves
                         case SDLK_DOWN:
                         case SDLK_LEFT:
                         case SDLK_RIGHT:
+                            copyBoard(game_status.blocks, game_status.previous, game_status.board_size);
                             moveStatus = moveAll(&game_status, event.key.keysym.sym);
                             moveStatus += mergeAll(&game_status, event.key.keysym.sym);
                             if (moveStatus) {
                                 randomOne(&game_status);
                             }
                             break;
+                        case SDLK_u:
+                            copyBoard(game_status.previous, game_status.blocks, game_status.board_size);
                         default: break;
                     }
                     break;
@@ -161,6 +161,21 @@ int main(int argc, char *argv[]) {
 
 void defaultSettings(game_t *game_status, int *quit, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer,
                      SDL_Surface *charset) {
+    // free last board on new game in the same instance
+    if (game_status->blocks != NULL) {
+        for (int i = 0; i < game_status->board_size; ++i) {
+            free(game_status->blocks[i]);
+        }
+        free(game_status->blocks);
+    }
+    if (game_status->previous != NULL) {
+        for (int i = 0; i < game_status->board_size; ++i) {
+            free(game_status->previous[i]);
+        }
+        free(game_status->previous);
+    }
+
+    // wait for size provided from user
     SDL_Event event;
     int size = 0;
     while ((size < 3 || size > 9)) {
@@ -190,20 +205,7 @@ void defaultSettings(game_t *game_status, int *quit, SDL_Surface *screen, SDL_Te
         }
     }
 
-    // free on new game in the same instance
-    if (game_status->blocks != NULL) {
-        for (int i = 0; i < size; ++i) {
-            free(game_status->blocks[i]);
-        }
-        free(game_status->blocks);
-    }
-    if (game_status->previous != NULL) {
-        for (int i = 0; i < size; ++i) {
-            free(game_status->previous[i]);
-        }
-        free(game_status->previous);
-    }
-
+    // set everything connected with game to default values
     game_status->timer = 0;
     game_status->points = 0;
     game_status->board_size = size;
@@ -219,6 +221,7 @@ void defaultSettings(game_t *game_status, int *quit, SDL_Surface *screen, SDL_Te
             for (int j = 0; j < size; ++j) {
                 game_status->blocks[i][j].value = EMPTY;
                 game_status->blocks[i][j].moved = 0;
+                game_status->blocks[i][j].move_length = 0;
             }
         }
     }
@@ -240,6 +243,7 @@ void defaultSettings(game_t *game_status, int *quit, SDL_Surface *screen, SDL_Te
             for (int j = 0; j < size; ++j) {
                 game_status->previous[i][j].value = EMPTY;
                 game_status->previous[i][j].moved = 0;
+                game_status->previous[i][j].move_length = 0;
             }
         }
     }
@@ -249,8 +253,9 @@ void defaultSettings(game_t *game_status, int *quit, SDL_Surface *screen, SDL_Te
         return;
     }
 
-
     randomOne(game_status);
+
+    copyBoard(game_status->blocks, game_status->previous, game_status->board_size);
 
     /*game_status->blocks[0][0].value = 2;
     game_status->blocks[1][0].value = 4;
