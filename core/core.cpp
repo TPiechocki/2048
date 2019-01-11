@@ -3,10 +3,9 @@
 //
 
 #include"core.h"
-#include "core.h"
-
 #include<string.h>
 #include<stdio.h>
+#include<stdlib.h>
 
 #ifdef __GNUC__
 #include<stdlib.h>
@@ -50,7 +49,7 @@ int moveOne(game_t *game, int x, int y, int horizontal, int vertical) {
         status = 1;
 
         // for animation purpose
-        ++game->previous[x][y].move_length;
+        ++game->buffer[x][y].move_length;
     }
     return status;
 }
@@ -81,6 +80,7 @@ int mergeOne(game_t *game, int x, int y, int horizontal, int vertical) {
     // if block next to moved is the same than change both to one with 2 times higher value
     if (game->blocks[x + horizontal][y + vertical].value == game->blocks[x][y].value) {
         game->blocks[x][y].value = EMPTY;
+        game->buffer[x][y].move_length = 1;
         game->blocks[x + horizontal][y + vertical].value *= 2;
         game->points += game->blocks[x + horizontal][y + vertical].value;
         return  1;
@@ -96,8 +96,8 @@ int InitAll(SDL_Window **window, SDL_Renderer **renderer) {
         return 1;
     }
     // fullscreen mode
-//	rc = SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP,
-//	                                 &window, &renderer);
+    // rc = SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP,
+    //                                 &window, &renderer);
     int check = SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0,
                                      window, renderer);
     if(check != 0) {
@@ -162,15 +162,9 @@ uint32_t colour(SDL_Surface *screen, char *name) {
 
 EXTERNC
 int moveAll(game_t *game, int direction) {
-    // reset animation info
-    for (int i = 0; i < game->board_size; ++i) {
-        for (int j = 0; j < game->board_size; ++j) {
-            game->previous[i][j].move_length = 0;
-        }
-    }
     // move position is temp position of block moving because of possibility to move up to 3 blocks
     // temp stores value of block being moved, status is 0 when nothing was moved
-    int move_position, temp, status = 0;
+    int status = 0;
     switch (direction) {
         case SDLK_UP:
             // check for every block on board
@@ -240,7 +234,7 @@ int mergeAll(game_t *game, int direction) {
                     // if block has a value and was not moved during this loop
                     if (game->blocks[j][i].value != EMPTY) {
                         if (mergeOne(game, j, i, 0, -1) == 1) {
-                            moveAll(game, direction);
+                           // moveAll(game, direction);
                             status += 1;
                         }
                     }
@@ -254,7 +248,7 @@ int mergeAll(game_t *game, int direction) {
                 for (int j = 0; j < game->board_size; ++j) {
                     if (game->blocks[j][i].value != EMPTY) {
                         if (mergeOne(game, j, i, 0, 1) == 1) {
-                            moveAll(game, direction);
+                          //  moveAll(game, direction);
                             status += 1;
                         }
                     }
@@ -266,7 +260,7 @@ int mergeAll(game_t *game, int direction) {
                 for (int j = 0; j < game->board_size; ++j) {
                     if (game->blocks[j][i].value != EMPTY) {
                         if (mergeOne(game, j, i, -1, 0) == 1) {
-                            moveAll(game, direction);
+                          //  moveAll(game, direction);
                             status += 1;
                         }
 
@@ -280,7 +274,7 @@ int mergeAll(game_t *game, int direction) {
                 for (int j = game->board_size-1; j >= 0; --j) {
                     if (game->blocks[j][i].value != EMPTY) {
                         if (mergeOne(game, j, i, 1, 0) == 1) {
-                            moveAll(game, direction);
+                         //   moveAll(game, direction);
                             status += 1;
                         }
                     }
@@ -365,4 +359,3 @@ void copyBoard(block_t **source, block_t **destination, int size) {
 
     }
 }
-

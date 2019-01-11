@@ -110,7 +110,7 @@ void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, game_t ga
 }
 
 EXTERNC
-void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game) {
+void DrawBorder(SDL_Surface *screen, game_t game) {
     // width and height of single block, board with padding of one block
     int width = GAME_WIDTH/(game.board_size+2);
     int height = SCREEN_HEIGHT/(game.board_size+2);
@@ -120,12 +120,19 @@ void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game) {
     DrawLine(screen, (game.board_size+1)*width, height-1, game.board_size*height + 2, 0, 1, colour(screen, (char *)"black"));
     DrawLine(screen, width-1, height-1, game.board_size*width + 2, 1, 0, colour(screen, (char *)"black"));
     DrawLine(screen, width-1, (game.board_size+1)*height, game.board_size*width + 2, 1, 0, colour(screen, (char *)"black"));
+}
+
+EXTERNC
+void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game) {
+    // width and height of single block, board with padding of one block
+    int width = GAME_WIDTH/(game.board_size+2);
+    int height = SCREEN_HEIGHT/(game.board_size+2);
 
     //blocks
     for (int i = 0; i < game.board_size ; ++i) {
         for (int j = 0; j < game.board_size; ++j) {
             char txt[10];
-            float scale = width/(4*8);
+            double scale = width / 32.0;
             switch (game.blocks[j][i].value) {
                 case EMPTY:
                     DrawRectangle(screen, width * (j + 1), height * (i + 1), width, height,
@@ -138,6 +145,63 @@ void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game) {
                     DrawString(screen, (width * (j + 1)) + width/2 - (int)(strlen(txt)*4*scale),
                                height * (i + 1) + height/2 - (int)(4*scale), txt, charset, scale);
                     break;
+            }
+        }
+    }
+}
+
+EXTERNC
+void animateMove(SDL_Surface *screen, SDL_Surface *charset, game_t *game, double duration, double actual,
+        int direction) {
+    // width and height of single block, board with padding of one block
+    int width = GAME_WIDTH/(game->board_size+2);
+    int height = SCREEN_HEIGHT/(game->board_size+2);
+
+    char txt[10] = "\0";
+    int vertical = 0, horizontal = 0, length, x, y;
+    switch (direction) {
+        case SDLK_UP:
+            vertical = -1;
+            break;
+        case SDLK_DOWN:
+            vertical = 1;
+            break;
+        case SDLK_LEFT:
+            horizontal = -1;
+            break;
+        case SDLK_RIGHT:
+            horizontal = 1;
+            break;
+        default: break;
+    }
+
+    for (int i = 0; i < game->board_size; ++i) {
+        for (int j = 0; j < game->board_size; ++j) {
+            DrawRectangle(screen, width * (j + 1), height * (i + 1), width, height,
+                          colour(screen, (char *) "black"), colour(screen, (char *) "emptyblock"));
+
+        }
+    }
+    //blocks
+    for (int i = 0; i < game->board_size; ++i) {
+        for (int j = 0; j < game->board_size; ++j) {
+            double scale = width / 32.0;
+            if (game->buffer[j][i].move_length == 0 && game->buffer[j][i].value != EMPTY) {
+                sprintf(txt, "%d", game->buffer[j][i].value);
+                DrawRectangle(screen, width * (j + 1), height * (i + 1), width, height,
+                              colour(screen, (char *) "black"), colour(screen, txt));
+                DrawString(screen, (width * (j + 1)) + width / 2 - (int) (strlen(txt) * 4 * scale),
+                           height * (i + 1) + height / 2 - (int) (4 * scale), txt, charset, scale);
+            }
+            else if (game->buffer[j][i].move_length != 0) {
+                sprintf(txt, "%d", game->buffer[j][i].value);
+                length = game->buffer[j][i].move_length;
+                x = width * (j + 1) + (int)(horizontal*width*((duration-actual)*length/duration));
+                y = height * (i + 1) + (int)(vertical*width*((duration-actual)*length/duration));
+                DrawRectangle(screen, x, y, width, height,
+                        colour(screen, (char *) "black"), colour(screen, txt));
+                DrawString(screen, x + width / 2 - (int) (strlen(txt) * 4 * scale),
+                           y + height / 2 - (int) (4 * scale), txt, charset, scale);
             }
         }
     }

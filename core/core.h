@@ -27,7 +27,9 @@ typedef struct {
     int points;             // player's score
     int board_size;         // size between 3 and 9
     block_t **blocks;       // actual board
-    block_t **previous;     // for animation purposes
+    block_t **buffer;       // for animation purposes
+    block_t **previous;     // copy board after arrow action
+    block_t **undo;         // if anything changed on move copy previous into this and then use in undo
 }game_t;
 
 /**

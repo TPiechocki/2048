@@ -43,12 +43,22 @@ void DrawRectangle(SDL_Surface *screen, int x, int y, int l, int k,
 void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, game_t game_status);
 
 /**
+ * draw border around the board
+ * @param screen
+ * @param game
+ */
+void DrawBorder(SDL_Surface *screen, game_t game);
+
+/**
  * Display board and blocks within it
  * @param screen
  * @param charset - font
  * @param game - game structure (board)
  */
 void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game);
+
+void animateMove(SDL_Surface *screen, SDL_Surface *charset, game_t *game, double duration, double actual,
+        int direction);
 
 /**
  * Put prompt into screen surface
