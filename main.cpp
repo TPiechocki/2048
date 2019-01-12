@@ -1,6 +1,6 @@
 #define _USE_MATH_DEFINES
 #define _CRT_SECURE_NO_WARNINGS
-#include<math.h>
+
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
@@ -19,7 +19,7 @@ void freeBoard(block_t **board, int size);
 extern "C"
 #endif
 int main(int argc, char *argv[]) {
-    int t1, t2, quit = 0, frames = 0, size = 0, moveStatus = 0, fps = 0, direction = 0;
+    int t1, t2, quit = 0, frames = 0, moveStatus = 0, fps = 0, direction = 0;
     double delta = 0, fpsTimer = 0, animation = 0, animation_duration = 0;
     srand((unsigned int)time(NULL));
     game_t game_status;
@@ -111,7 +111,7 @@ int main(int argc, char *argv[]) {
             moveStatus += mergeAll(&game_status, direction);
             moveStatus += moveAll(&game_status, direction);
             if (moveStatus) {
-                animation = animation_duration = 0.2;
+                animation = animation_duration = ANIMATION_DURATION;
                 moveStatus = 0;
             }
             copyBoard(game_status.previous, game_status.undo, game_status.board_size);
@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
                             }
                             moveStatus = moveAll(&game_status, direction);
                             if (moveStatus) {
-                                animation = animation_duration = 0.2;
+                                animation = animation_duration = ANIMATION_DURATION;
                                 continue;   // first animate and then handle merge if  blocks were moved
                             }
                             else {

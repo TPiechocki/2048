@@ -57,6 +57,15 @@ void DrawBorder(SDL_Surface *screen, game_t game);
  */
 void DrawBoard(SDL_Surface *screen, SDL_Surface *charset, game_t game);
 
+/**
+ * Display animated movement
+ * @param screen
+ * @param charset - font
+ * @param game - game structure
+ * @param duration - duration of animation in seconds
+ * @param actual - actual moment of animation in seconds
+ * @param direction - move direction
+ */
 void animateMove(SDL_Surface *screen, SDL_Surface *charset, game_t *game, double duration, double actual,
         int direction);
 

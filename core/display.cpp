@@ -6,7 +6,6 @@
 #include<stdio.h>
 #include<string.h>
 #include"display.h"
-#include "display.h"
 
 
 #ifdef __GNUC__
@@ -107,6 +106,9 @@ void DrawLegend(SDL_Surface *screen, SDL_Surface *charset, double fps, game_t ga
     legendPosition += 16;
     sprintf(text, "\032\030\033\031  - move");
     DrawString(screen, GAME_WIDTH + 10, legendPosition, text, charset, 1);
+    legendPosition += 16;
+    sprintf(text, "  u   - undo move");
+    DrawString(screen, GAME_WIDTH + 10, legendPosition, text, charset, 1);
 }
 
 EXTERNC
@@ -174,7 +176,7 @@ void animateMove(SDL_Surface *screen, SDL_Surface *charset, game_t *game, double
             break;
         default: break;
     }
-
+    // empty blocks
     for (int i = 0; i < game->board_size; ++i) {
         for (int j = 0; j < game->board_size; ++j) {
             DrawRectangle(screen, width * (j + 1), height * (i + 1), width, height,
@@ -182,7 +184,23 @@ void animateMove(SDL_Surface *screen, SDL_Surface *charset, game_t *game, double
 
         }
     }
-    //blocks
+    // moving blocks
+    for (int i = 0; i < game->board_size; ++i) {
+        for (int j = 0; j < game->board_size; ++j) {
+            double scale = width / 32.0;
+            if (game->buffer[j][i].move_length != 0) {
+                sprintf(txt, "%d", game->buffer[j][i].value);
+                length = game->buffer[j][i].move_length;
+                x = width * (j + 1) + (int)(horizontal*width*((duration-actual)*length/duration));
+                y = height * (i + 1) + (int)(vertical*width*((duration-actual)*length/duration));
+                DrawRectangle(screen, x, y, width, height,
+                              colour(screen, (char *) "black"), colour(screen, txt));
+                DrawString(screen, x + width / 2 - (int) (strlen(txt) * 4 * scale),
+                           y + height / 2 - (int) (4 * scale), txt, charset, scale);
+            }
+        }
+    }
+    // static blocks
     for (int i = 0; i < game->board_size; ++i) {
         for (int j = 0; j < game->board_size; ++j) {
             double scale = width / 32.0;
@@ -192,16 +210,6 @@ void animateMove(SDL_Surface *screen, SDL_Surface *charset, game_t *game, double
                               colour(screen, (char *) "black"), colour(screen, txt));
                 DrawString(screen, (width * (j + 1)) + width / 2 - (int) (strlen(txt) * 4 * scale),
                            height * (i + 1) + height / 2 - (int) (4 * scale), txt, charset, scale);
-            }
-            else if (game->buffer[j][i].move_length != 0) {
-                sprintf(txt, "%d", game->buffer[j][i].value);
-                length = game->buffer[j][i].move_length;
-                x = width * (j + 1) + (int)(horizontal*width*((duration-actual)*length/duration));
-                y = height * (i + 1) + (int)(vertical*width*((duration-actual)*length/duration));
-                DrawRectangle(screen, x, y, width, height,
-                        colour(screen, (char *) "black"), colour(screen, txt));
-                DrawString(screen, x + width / 2 - (int) (strlen(txt) * 4 * scale),
-                           y + height / 2 - (int) (4 * scale), txt, charset, scale);
             }
         }
     }

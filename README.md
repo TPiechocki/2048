@@ -15,4 +15,3 @@ Second Project for Basics of Programming.
 - display empty board
 - new game with 'n' key
 - display legend with FPS, timer and controls
-

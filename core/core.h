@@ -15,6 +15,7 @@ extern "C" {
 #define GAME_WIDTH (SCREEN_WIDTH*2/3)
 #define LEGEND_WIDTH (SCREEN_WIDTH*1/3)
 #define EMPTY 0
+#define ANIMATION_DURATION 0.2
 
 typedef struct {
     int value;
