@@ -2,6 +2,10 @@
 Second Project for Basics of Programming.
 
 1.0
+- queue for moves during animation removed
+
+fixes:
+- animation disappearing
 
 0.2
 - move animation

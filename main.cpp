@@ -96,6 +96,9 @@ int main(int argc, char *argv[]) {
             updateScreen(screen, scrtex, renderer);
             animation -= delta;
             frames++;
+            while(SDL_PollEvent(&event)) {
+                // void
+            }
             continue;
         }
         // continue move, e.g. merge after blocks' movement
@@ -132,7 +135,7 @@ int main(int argc, char *argv[]) {
         updateScreen(screen, scrtex, renderer);
 
         // handling of events (if there were any)
-        while(SDL_PollEvent(&event)) {
+        while(SDL_PollEvent(&event) && animation <= 0) {
             switch(event.type) {
                 case SDL_KEYDOWN: {
                     switch (event.key.keysym.sym) {
